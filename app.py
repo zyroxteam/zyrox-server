@@ -5,6 +5,7 @@ import tempfile
 import threading
 import time
 import traceback
+import urllib.request
 
 from flask import Flask, jsonify, request, send_file
 
@@ -12,6 +13,26 @@ import processor
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 app.config['MAX_CONTENT_LENGTH'] = 300 * 1024 * 1024   # 300 MB upload cap
+
+# ---- free-tier keep-alive: ping our own public URL so Render never sleeps
+#      the instance (sleeping = visitors see a long "starting up" page) ----
+KEEPALIVE_URL = os.environ.get('KEEPALIVE_URL') or \
+    'https://zyrox-music-enhance.onrender.com/api/health'
+
+
+def _start_keepalive():
+    def ping():
+        try:
+            urllib.request.urlopen(KEEPALIVE_URL, timeout=15)
+        except Exception:
+            pass
+        threading.Timer(600, ping).start()   # every 10 min
+
+    threading.Timer(45, ping).start()        # first ping 45s after boot
+
+
+if os.environ.get('DISABLE_KEEPALIVE') != '1':
+    _start_keepalive()
 
 
 def _schedule_cleanup(tmpdir, delay=60):

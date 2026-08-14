@@ -121,6 +121,12 @@ footer b{color:#cdd3ea}
 .spin{width:44px; height:44px; border-radius:50%; border:4px solid rgba(255,255,255,.14); border-top-color:var(--p2); animation:rot .8s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
 .proc span{font-size:14px; font-weight:700; letter-spacing:.4px}
+.proc .cancel{
+  margin-top:6px; padding:10px 22px; border-radius:12px; cursor:pointer; font:inherit;
+  font-size:13px; font-weight:700; color:#ffc2d6; background:rgba(255,61,129,.15);
+  border:1px solid rgba(255,61,129,.45); transition:.2s;
+}
+.proc .cancel:hover{background:rgba(255,61,129,.3)}
 .pfoot{display:flex; gap:10px; padding:4px 24px 22px; justify-content:flex-end; flex-wrap:wrap}
 .btn{font:inherit; font-size:14px; font-weight:800; padding:12px 22px; border-radius:13px; cursor:pointer; border:1px solid var(--line); background:rgba(255,255,255,.05); color:var(--txt); transition:.2s; letter-spacing:.3px}
 .btn:hover{transform:translateY(-2px)}
@@ -199,6 +205,7 @@ footer b{color:#cdd3ea}
     <div class="proc" id="proc" hidden>
       <div class="spin"></div>
       <span id="procText">Processing…</span>
+      <button class="cancel" id="procCancel" type="button">✕ Cancel</button>
     </div>
   </div>
 </div>
@@ -224,7 +231,7 @@ const TOOLS = [
   { id:'all',     name:'Make All Types',ic:'✨', desc:'8D Bass Boosted · 3D Mix · Slow Reverb 8D · Ultra Bass 8D', hint:'MP3, WAV, OGG, M4A, FLAC…' }
 ];
 
-let cur = null, file = null, result = null, dname = 'ZYROX-output.mp3', timer = null;
+let cur = null, file = null, result = null, dname = 'ZYROX-output.mp3', timer = null, curXhr = null;
 
 /* ---------- server health ---------- */
 let wasOnline = false;
@@ -318,6 +325,7 @@ function openTool(id){
   document.body.style.overflow = 'hidden';
 }
 function closeModal(){
+  if (curXhr){ try { curXhr.abort(); } catch(e){} curXhr = null; }
   modal.hidden = true;
   document.body.style.overflow = '';
   resetToolState();
@@ -464,6 +472,11 @@ function collect(){
 }
 
 /* ---------- process ---------- */
+$('#procCancel').onclick = () => {
+  if (curXhr){ curXhr.abort(); curXhr = null; }
+  toast('Processing cancelled.', 'ok');
+};
+
 $('#mProcess').onclick = () => {
   if (!file) return;
   if (timer){ clearInterval(timer); }
@@ -474,8 +487,10 @@ $('#mProcess').onclick = () => {
   Object.keys(g).forEach(k => fd.append(k, g[k]));
 
   const xhr = new XMLHttpRequest();
+  curXhr = xhr;
   xhr.open('POST', '/api/process');
   xhr.responseType = 'blob';
+  xhr.timeout = 13 * 60 * 1000;   // free-tier cap ke andar safe timeout
   let t0 = Date.now(), started = false;
   showProc('Uploading… 0%');
   xhr.upload.onprogress = e => {
@@ -487,31 +502,41 @@ $('#mProcess').onclick = () => {
     showProc('Processing… 0:00 (server me chal raha hai)');
     timer = setInterval(() => showProc('Processing… ' + fmtT((Date.now() - t0) / 1000)), 1000);
   };
-  xhr.onload = () => {
+  const finish = ok => {
     if (timer){ clearInterval(timer); timer = null; }
+    if (curXhr === xhr) curXhr = null;
+    hideProc();
+    if (!ok){
+      $('#mProcess').disabled = false;
+      $('#mDownload').disabled = (result === null);
+    }
+  };
+  xhr.onload = () => {
     if (xhr.status === 200){
       result = xhr.response;
       const cd = xhr.getResponseHeader('Content-Disposition') || '';
       const m = cd.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
       dname = m ? m[1] : 'ZYROX-output.mp3';
-      hideProc();
+      finish(true);
       $('#mDownload').disabled = false;
-      toast('✅ ' + cur.name + ' ready! Hit Download.', 'ok');
       $('#mProcess').disabled = false;
+      toast('✅ ' + cur.name + ' ready! Hit Download.', 'ok');
     } else {
-      hideProc();
       let msg = 'Server error (HTTP ' + xhr.status + ')';
       try { msg = JSON.parse(xhr.response).error || msg; } catch (e) {}
+      finish(false);
       toast(msg, 'err');
-      $('#mProcess').disabled = false;
     }
   };
-  xhr.onerror = () => {
-    if (timer){ clearInterval(timer); timer = null; }
-    hideProc();
-    toast('Could not reach the server — try again.', 'err');
-    $('#mProcess').disabled = false;
+  xhr.ontimeout = () => {
+    finish(false);
+    toast('Server ne jawaab nahi diya (free-tier limit). Dobara try karo.', 'err');
   };
+  xhr.onerror = () => {
+    finish(false);
+    toast('Could not reach the server — try again.', 'err');
+  };
+  xhr.onabort = () => { finish(false); };
   $('#mProcess').disabled = true;
   xhr.send(fd);
 };
