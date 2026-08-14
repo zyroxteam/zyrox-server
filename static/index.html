@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZYROX MUSIC ENHANCE — Audio Studio</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎧</text></svg>">
+<style>
+:root{
+  --bg:#06070d; --panel:#0c0e19; --card:#10131f; --line:rgba(255,255,255,.08);
+  --txt:#eaeef8; --mut:#8b91a8; --p:#7c5cff; --p2:#00d4ff; --a:#ff3d81; --ok:#22e0a0;
+  --grad:linear-gradient(100deg,#7c5cff 0%,#00d4ff 55%,#ff3d81 100%);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Segoe UI',system-ui,-apple-system,Roboto,'Helvetica Neue',Arial,sans-serif;
+  background:var(--bg); color:var(--txt); min-height:100vh; overflow-x:hidden;
+  background-image:radial-gradient(900px 500px at 15% -10%,rgba(124,92,255,.16),transparent 60%),
+                   radial-gradient(800px 480px at 85% 0%,rgba(0,212,255,.12),transparent 60%),
+                   radial-gradient(700px 500px at 50% 110%,rgba(255,61,129,.10),transparent 60%);
+}
+::selection{background:rgba(124,92,255,.45)}
+.topbar{
+  position:sticky; top:0; z-index:50; display:flex; align-items:center; justify-content:space-between;
+  padding:14px clamp(16px,4vw,40px); backdrop-filter:blur(14px);
+  background:rgba(6,7,13,.72); border-bottom:1px solid var(--line); flex-wrap:wrap; gap:10px;
+}
+.brand{display:flex; align-items:center; gap:12px; text-decoration:none; color:var(--txt)}
+.logo{
+  width:40px; height:40px; border-radius:12px; background:var(--grad); display:flex; align-items:center;
+  justify-content:center; font-weight:900; font-size:22px; color:#fff;
+  box-shadow:0 0 22px rgba(124,92,255,.55);
+}
+.brand-name{font-size:19px; font-weight:800; letter-spacing:.5px}
+.brand-name small{display:block; font-size:10px; letter-spacing:3px; color:var(--mut); font-weight:600}
+#net{
+  font-size:12px; padding:7px 14px; border-radius:999px; font-weight:600; white-space:nowrap;
+  background:rgba(255,255,255,.05); border:1px solid var(--line); color:#b9bfd8;
+}
+#net.online{color:#a9f5dd; background:rgba(34,224,160,.10); border-color:rgba(34,224,160,.28)}
+#net.wake{color:#ffe3a3; background:rgba(255,190,60,.10); border-color:rgba(255,190,60,.3)}
+.hero{text-align:center; padding:clamp(44px,7vw,80px) 20px 26px}
+.hero h1{font-size:clamp(34px,6vw,64px); font-weight:900; letter-spacing:.5px; line-height:1.08; text-transform:uppercase}
+.grad{background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent}
+.hero p{color:var(--mut); max-width:680px; margin:18px auto 0; font-size:clamp(14px,2vw,16.5px); line-height:1.6}
+.chips{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:22px}
+.chip{font-size:12.5px; font-weight:600; padding:8px 15px; border-radius:999px; background:var(--card); border:1px solid var(--line); color:#cfd5ea}
+.chip b{color:var(--txt)}
+.wrap{max-width:1180px; margin:0 auto; padding:0 20px 40px}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(255px,1fr)); gap:16px}
+.tool{
+  position:relative; text-align:left; cursor:pointer; padding:22px 20px 20px; border-radius:18px;
+  background:linear-gradient(var(--card),var(--card)) padding-box,
+             linear-gradient(135deg,rgba(124,92,255,.35),rgba(0,212,255,.25)) border-box;
+  border:1px solid transparent; transition:transform .22s ease, box-shadow .22s ease;
+  color:var(--txt); overflow:hidden;
+}
+.tool:hover{transform:translateY(-5px); box-shadow:0 16px 44px -14px rgba(124,92,255,.45)}
+.tool:active{transform:translateY(-2px)}
+.tool .ic{width:48px; height:48px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:24px; background:rgba(124,92,255,.14); border:1px solid rgba(124,92,255,.3); margin-bottom:14px}
+.tool h3{font-size:17px; font-weight:800; letter-spacing:.3px}
+.tool p{color:var(--mut); font-size:13px; margin-top:6px; line-height:1.45}
+.tool .go{position:absolute; right:16px; top:18px; font-size:11px; font-weight:700; color:var(--p2); opacity:0; transform:translateX(8px); transition:.25s}
+.tool:hover .go{opacity:1; transform:none}
+footer{text-align:center; color:var(--mut); font-size:12.5px; padding:26px 16px 44px; border-top:1px solid var(--line); margin-top:30px}
+footer b{color:#cdd3ea}
+.modal{position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:18px}
+.backdrop{position:absolute; inset:0; background:rgba(3,4,9,.78); backdrop-filter:blur(6px)}
+.panel{
+  position:relative; width:min(600px,100%); max-height:92vh; overflow:auto; border-radius:22px;
+  background:linear-gradient(#101322,#0c0e1a) padding-box, linear-gradient(140deg,rgba(124,92,255,.5),rgba(0,212,255,.3)) border-box;
+  border:1px solid transparent; box-shadow:0 30px 90px -20px rgba(0,0,0,.8);
+  animation:pop .28s cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes pop{from{transform:scale(.94) translateY(14px); opacity:0} to{transform:none; opacity:1}}
+.phead{display:flex; align-items:center; justify-content:space-between; padding:20px 24px 12px; position:sticky; top:0; background:linear-gradient(#101322,#101322ee); backdrop-filter:blur(6px); z-index:5}
+.phead h2{font-size:20px; font-weight:800; letter-spacing:.3px}
+.phead .sub{font-size:12px; color:var(--mut); margin-top:3px; font-weight:500}
+.xbtn{width:36px; height:36px; border-radius:10px; border:1px solid var(--line); background:rgba(255,255,255,.04); color:var(--txt); font-size:17px; cursor:pointer; transition:.2s}
+.xbtn:hover{background:rgba(255,61,129,.18); border-color:rgba(255,61,129,.5)}
+.pbody{padding:6px 24px 18px}
+.drop{border:2px dashed rgba(124,92,255,.45); border-radius:16px; padding:34px 20px; text-align:center; cursor:pointer; transition:.2s; background:rgba(124,92,255,.05)}
+.drop:hover,.drop.over{border-color:var(--p2); background:rgba(0,212,255,.07)}
+.drop .big{font-size:34px}
+.drop h4{margin-top:10px; font-size:15px; font-weight:700}
+.drop p{color:var(--mut); font-size:12.5px; margin-top:5px}
+.filerow{display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--line); padding:12px 14px; border-radius:14px; margin-bottom:16px; flex-wrap:wrap}
+.fname{font-weight:700; font-size:14px; word-break:break-all; flex:1; min-width:130px}
+.fmeta{font-size:11.5px; color:var(--mut); font-weight:600}
+.ctrl{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:14px}
+.ctrl-title{font-size:12px; font-weight:800; letter-spacing:1.6px; text-transform:uppercase; color:var(--mut); margin-bottom:12px}
+.row{display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap}
+.row:last-child{margin-bottom:0}
+.row label{font-size:13.5px; font-weight:600; min-width:86px; color:#c8cde4}
+.row input[type=range]{flex:1; min-width:130px; height:6px; -webkit-appearance:none; appearance:none; background:rgba(255,255,255,.12); border-radius:99px; outline:none; cursor:pointer}
+.row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--grad); border:2.5px solid #fff; box-shadow:0 0 12px rgba(124,92,255,.8); cursor:grab}
+.row input[type=range]::-moz-range-thumb{width:16px; height:16px; border-radius:50%; background:#7c5cff; border:2px solid #fff}
+.val{font-size:13px; font-weight:800; min-width:52px; text-align:right; color:var(--p2); font-variant-numeric:tabular-nums}
+.eqgrid{display:grid; grid-template-columns:1fr 1fr; gap:8px 18px}
+.eqgrid .row{margin-bottom:6px}
+.eqgrid label{min-width:58px; font-size:12.5px}
+.eqgrid .val{min-width:44px; font-size:12.5px}
+.seg{display:flex; gap:7px; flex-wrap:wrap}
+.seg button{font:inherit; font-size:12.5px; font-weight:700; padding:8px 13px; border-radius:10px; cursor:pointer; background:rgba(255,255,255,.05); border:1px solid var(--line); color:#b9bfd8; transition:.18s}
+.seg button:hover{border-color:rgba(124,92,255,.6)}
+.seg button.on{background:var(--grad); color:#fff; border-color:transparent; box-shadow:0 4px 16px -4px rgba(124,92,255,.7)}
+.tog{display:flex; align-items:center; gap:11px; cursor:pointer; user-select:none}
+.tog input{display:none}
+.tog .track{width:46px; height:25px; border-radius:99px; background:rgba(255,255,255,.13); position:relative; transition:.22s; flex:none}
+.tog .track::after{content:''; position:absolute; top:3px; left:3px; width:19px; height:19px; border-radius:50%; background:#fff; transition:.22s; box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.tog input:checked + .track{background:var(--grad)}
+.tog input:checked + .track::after{left:24px}
+.tog .tl{font-size:13.5px; font-weight:600}
+.tog .hint{font-size:11.5px; color:var(--mut); margin-top:2px}
+.info{font-size:13px; color:#c9d0e8; background:rgba(0,212,255,.07); border:1px solid rgba(0,212,255,.25); border-radius:12px; padding:13px 15px; line-height:1.55}
+.info b{color:#8ee9ff}
+.proc{
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+  background:rgba(5,6,12,.84); backdrop-filter:blur(5px); border-radius:22px; z-index:20;
+}
+.spin{width:44px; height:44px; border-radius:50%; border:4px solid rgba(255,255,255,.14); border-top-color:var(--p2); animation:rot .8s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.proc span{font-size:14px; font-weight:700; letter-spacing:.4px}
+.pfoot{display:flex; gap:10px; padding:4px 24px 22px; justify-content:flex-end; flex-wrap:wrap}
+.btn{font:inherit; font-size:14px; font-weight:800; padding:12px 22px; border-radius:13px; cursor:pointer; border:1px solid var(--line); background:rgba(255,255,255,.05); color:var(--txt); transition:.2s; letter-spacing:.3px}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4; cursor:not-allowed; transform:none}
+.btn.primary{background:var(--grad); border:none; color:#fff; box-shadow:0 8px 26px -8px rgba(124,92,255,.8)}
+.toasts{position:fixed; bottom:22px; left:50%; transform:translateX(-50%); z-index:200; display:flex; flex-direction:column; gap:9px; align-items:center; pointer-events:none}
+.toast{padding:12px 20px; border-radius:13px; font-size:13.5px; font-weight:700; max-width:92vw; background:#131728; border:1px solid var(--line); box-shadow:0 14px 40px -10px rgba(0,0,0,.7); animation:tIn .3s cubic-bezier(.2,.9,.3,1.2)}
+.toast.ok{border-color:rgba(34,224,160,.5); color:#b6f7e2}
+.toast.err{border-color:rgba(255,61,129,.55); color:#ffc2d6}
+@keyframes tIn{from{transform:translateY(16px); opacity:0} to{transform:none; opacity:1}}
+@media (max-width:560px){ .pbody{padding:6px 16px 14px} .pfoot{padding:4px 16px 18px} .eqgrid{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="#">
+    <div class="logo">Z</div>
+    <div class="brand-name">ZYROX <small>MUSIC ENHANCE</small></div>
+  </a>
+  <span id="net">⏳ Connecting to server…</span>
+</header>
+
+<section class="hero">
+  <h1>ZYROX <span class="grad">MUSIC<br>ENHANCE</span></h1>
+  <p>Full audio studio powered by a <b style="color:#c9d0e8">Python server</b> — bass boost, 8-band EQ, slow reverb, cut &amp; convert. Your file is processed and <b style="color:#c9d0e8">deleted instantly</b> after download.</p>
+  <div class="chips">
+    <span class="chip">🎧 <b>8D</b> &amp; <b>3D</b> Mixes</span>
+    <span class="chip">🔥 <b>Bass Boosted</b> Songs</span>
+    <span class="chip">🌊 Slow + Reverb</span>
+    <span class="chip">🎬 Video → Audio</span>
+    <span class="chip">⚡ ffmpeg-powered engine</span>
+  </div>
+</section>
+
+<main class="wrap">
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer>
+  <b>ZYROX MUSIC ENHANCE</b> · Bass Boosted · Equalizer · Slow Reverb · Cut Audio · Video to Audio · Voice Enhance · 8D Audio · 3D Mix<br>
+  Server engine: Flask + ffmpeg + numpy · Files are auto-deleted right after processing 🔒
+</footer>
+
+<!-- ============ MODAL ============ -->
+<div class="modal" id="modal" hidden>
+  <div class="backdrop" id="backdrop"></div>
+  <div class="panel" id="panel">
+    <div class="phead">
+      <div>
+        <h2 id="mTitle">Tool</h2>
+        <div class="sub" id="mSub"></div>
+      </div>
+      <button class="xbtn" id="mClose" title="Close">✕</button>
+    </div>
+    <div class="pbody">
+      <div class="drop" id="drop" tabindex="0">
+        <div class="big">📂</div>
+        <h4>Drop your file here</h4>
+        <p id="dropHint">or click to browse — MP3, WAV, OGG, M4A, FLAC…</p>
+      </div>
+      <div class="filerow" id="filerow" hidden>
+        <div style="flex:1; min-width:130px">
+          <div class="fname" id="fname"></div>
+          <div class="fmeta" id="fmeta"></div>
+        </div>
+        <button class="btn ghost" id="rePick" style="padding:9px 15px; font-size:13px">Change file</button>
+      </div>
+      <div id="controls"></div>
+    </div>
+    <div class="pfoot">
+      <button class="btn ghost" id="mReset">Reset</button>
+      <button class="btn primary" id="mProcess" disabled>▶ Process</button>
+      <button class="btn primary" id="mDownload" disabled>⬇ Download</button>
+    </div>
+    <div class="proc" id="proc" hidden>
+      <div class="spin"></div>
+      <span id="procText">Processing…</span>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<input type="file" id="fileInput" hidden>
+
+<script>
+'use strict';
+/* ================= ZYROX MUSIC ENHANCE — frontend ================= */
+const $ = s => document.querySelector(s);
+const fmtMB = b => (b / 1048576).toFixed(1) + ' MB';
+const fmtT = s => { s = Math.round(s || 0); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+
+const TOOLS = [
+  { id:'bass',    name:'Bass Boosted',  ic:'🎛️', desc:'Punchy, deep low-end boost — Power, Deep & Ultra levels.', hint:'MP3, WAV, OGG, M4A, FLAC…' },
+  { id:'eq',      name:'Equalizer',     ic:'🎚️', desc:'8-band studio EQ with presets. Sculpt your sound.',        hint:'MP3, WAV, OGG, M4A, FLAC…' },
+  { id:'reverb',  name:'Slow Reverb',   ic:'🌊', desc:'That slowed + reverb aesthetic — Room, Hall, Cathedral.',  hint:'MP3, WAV, OGG, M4A, FLAC…' },
+  { id:'cut',     name:'Cut Audio',     ic:'✂️', desc:'Trim any section — perfect for ringtones & clips.',        hint:'MP3, WAV, OGG, M4A, FLAC…' },
+  { id:'v2a',     name:'Video → Audio', ic:'🎬', desc:'Extract clean audio from any video in seconds (server).',  hint:'MP4, WebM, MOV…' },
+  { id:'voice',   name:'Enhance Voice', ic:'🎙️', desc:'Vocal clarity, presence & loudness — podcast ready.',      hint:'MP3, WAV, OGG, M4A, FLAC…' },
+  { id:'8d',      name:'8D Audio',      ic:'🎧', desc:'Rotating 360° audio that circles around your head.',       hint:'MP3, WAV, OGG, M4A, FLAC…' },
+  { id:'all',     name:'Make All Types',ic:'✨', desc:'8D Bass Boosted · 3D Mix · Slow Reverb 8D · Ultra Bass 8D', hint:'MP3, WAV, OGG, M4A, FLAC…' }
+];
+
+let cur = null, file = null, result = null, dname = 'ZYROX-output.mp3', timer = null;
+
+/* ---------- server health ---------- */
+let wasOnline = false;
+async function checkHealth(){
+  try {
+    const r = await fetch('/api/health');
+    if (r.ok){
+      setNet('online', '🟢 Server online');
+      wasOnline = true;
+      return;
+    }
+  } catch (e) {}
+  setNet('wake', wasOnline ? '⏳ Server waking up… (~30s)' : '⏳ Starting server… (free tier, ~30s)');
+  setTimeout(checkHealth, 5000);
+}
+function setNet(cls, txt){ const n = $('#net'); n.className = cls; n.textContent = txt; }
+checkHealth();
+
+/* ---------- helpers ---------- */
+function toast(msg, type){
+  const t = document.createElement('div');
+  t.className = 'toast ' + (type || '');
+  t.textContent = msg;
+  $('#toasts').appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = '.4s'; }, 3200);
+  setTimeout(() => t.remove(), 3700);
+}
+function showProc(text){ $('#procText').textContent = text; $('#proc').hidden = false; }
+function hideProc(){ $('#proc').hidden = true; }
+function segHTML(id, options, active){
+  return '<div class="seg" id="' + id + '">' + options.map(o =>
+    '<button type="button" data-v="' + o + '" class="' + (o === active ? 'on' : '') + '">' + o + '</button>').join('') + '</div>';
+}
+function bindSeg(id, cb){
+  $(id).querySelectorAll('button').forEach(b => {
+    b.onclick = () => {
+      $(id).querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      if (cb) cb(b.dataset.v);
+    };
+  });
+}
+function sliderHTML(id, label, min, max, step, val, unit){
+  return '<div class="row"><label for="' + id + '">' + label + '</label>' +
+    '<input type="range" id="' + id + '" min="' + min + '" max="' + max + '" step="' + step + '" value="' + val + '">' +
+    '<span class="val" id="' + id + 'V">' + val + (unit || '') + '</span></div>';
+}
+function bindSlider(id, unit, cb){
+  const inp = document.getElementById(id);
+  const sync = () => {
+    document.getElementById(id + 'V').textContent = inp.value + (unit || '');
+    if (cb) cb(parseFloat(inp.value));
+  };
+  inp.oninput = sync; sync();
+}
+function toggleHTML(id, label, checked, hint){
+  return '<label class="tog"><input type="checkbox" id="' + id + '" ' + (checked ? 'checked' : '') + '>' +
+    '<span class="track"></span><span><span class="tl">' + label + '</span>' +
+    (hint ? '<div class="hint">' + hint + '</div>' : '') + '</span></label>';
+}
+
+/* ---------- cards ---------- */
+const grid = $('#grid');
+TOOLS.forEach(t => {
+  const el = document.createElement('button');
+  el.className = 'tool';
+  el.innerHTML = '<span class="go">OPEN →</span><div class="ic">' + t.ic + '</div><h3>' + t.name + '</h3><p>' + t.desc + '</p>';
+  el.onclick = () => openTool(t.id);
+  grid.appendChild(el);
+});
+
+/* ---------- modal ---------- */
+const modal = $('#modal'), drop = $('#drop'), fileInput = $('#fileInput'),
+      filerow = $('#filerow'), controlsEl = $('#controls');
+const BANDS = [60, 170, 310, 600, 1000, 3000, 6000, 12000];
+const BAND_LABELS = ['60', '170', '310', '600', '1K', '3K', '6K', '12K'];
+const EQ_PRESETS = {
+  Flat: [0,0,0,0,0,0,0,0], Pop: [2,3,1,-1,-2,-1,1,3],
+  Rock: [4,2,-2,-1,2,3,4,3], Vocal: [-2,-2,0,2,4,5,4,2]
+};
+
+function openTool(id){
+  cur = TOOLS.find(t => t.id === id);
+  resetToolState();
+  $('#mTitle').textContent = cur.name;
+  $('#mSub').textContent = cur.desc;
+  $('#dropHint').textContent = cur.hint;
+  fileInput.accept = id === 'v2a' ? 'video/*,audio/*' : 'audio/*';
+  buildControls(id);
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(){
+  modal.hidden = true;
+  document.body.style.overflow = '';
+  resetToolState();
+}
+function resetToolState(){
+  if (timer){ clearInterval(timer); timer = null; }
+  hideProc();
+  file = null; result = null; dname = 'ZYROX-output.mp3';
+  drop.hidden = false; filerow.hidden = true;
+  $('#mProcess').disabled = true;
+  $('#mDownload').disabled = true;
+}
+$('#mClose').onclick = closeModal;
+$('#backdrop').onclick = closeModal;
+$('#mReset').onclick = () => openTool(cur.id);
+$('#rePick').onclick = () => fileInput.click();
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) closeModal(); });
+
+drop.onclick = () => fileInput.click();
+drop.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); };
+['dragover','dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => {
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) pickFile(f);
+});
+fileInput.onchange = () => { if (fileInput.files[0]) pickFile(fileInput.files[0]); fileInput.value = ''; };
+
+function pickFile(f){
+  if (f.size > 300 * 1024 * 1024){ toast('File too big — max 300 MB.', 'err'); return; }
+  file = f; result = null;
+  drop.hidden = true; filerow.hidden = false;
+  $('#fname').textContent = f.name;
+  $('#fmeta').textContent = fmtMB(f.size) + ' — ready';
+  $('#mProcess').disabled = false;
+  $('#mDownload').disabled = true;
+}
+
+/* ---------- per-tool controls ---------- */
+function buildControls(id){
+  let html = '';
+  if (id === 'bass'){
+    html = '<div class="ctrl"><div class="ctrl-title">Boost Level</div>' +
+      segHTML('bsPreset', ['Power', 'Deep', 'Ultra', 'Custom'], 'Power') +
+      '<div id="bsCustomWrap" hidden style="margin-top:12px">' + sliderHTML('bsLevel', 'Custom level', 0, 14, 1, 6, ' dB') + '</div></div>';
+    controlsEl.innerHTML = html;
+    bindSeg('#bsPreset', v => { $('#bsCustomWrap').hidden = (v !== 'Custom'); });
+    bindSlider('#bsLevel', ' dB');
+  }
+  if (id === 'eq'){
+    html = '<div class="ctrl"><div class="ctrl-title">8-Band Equalizer</div>' +
+      segHTML('eqPreset', Object.keys(EQ_PRESETS), 'Flat') +
+      '<div class="eqgrid" style="margin-top:14px">' +
+      BANDS.map((f, i) =>
+        '<div class="row"><label>' + BAND_LABELS[i] + ' Hz</label>' +
+        '<input type="range" id="eq' + i + '" min="-12" max="12" step="0.5" value="0">' +
+        '<span class="val" id="eq' + i + 'V">0 dB</span></div>').join('') +
+      '</div></div>';
+    controlsEl.innerHTML = html;
+    bindSeg('#eqPreset', v => {
+      EQ_PRESETS[v].forEach((g, i) => {
+        document.getElementById('eq' + i).value = g;
+        document.getElementById('eq' + i + 'V').textContent = (g > 0 ? '+' : '') + g + ' dB';
+      });
+    });
+    BANDS.forEach((_, i) => {
+      document.getElementById('eq' + i).oninput = function(){
+        const g = parseFloat(this.value);
+        document.getElementById('eq' + i + 'V').textContent = (g > 0 ? '+' : '') + g + ' dB';
+      };
+    });
+  }
+  if (id === 'reverb'){
+    html = '<div class="ctrl"><div class="ctrl-title">Space</div>' +
+      segHTML('rvPreset', ['Room', 'Hall', 'Cathedral'], 'Hall') +
+      '<div style="margin-top:14px">' + sliderHTML('rvWet', 'Reverb', 10, 90, 1, 50, '%') + '</div></div>' +
+      '<div class="ctrl"><div class="ctrl-title">Vibe</div>' +
+      toggleHTML('rvSlow', 'Slow down (slowed + reverb style)', true, 'Lowers tempo & pitch like the classic slowed reverb') + '</div>';
+    controlsEl.innerHTML = html;
+    bindSeg('#rvPreset');
+    bindSlider('#rvWet', '%');
+  }
+  if (id === 'cut'){
+    html = '<div class="ctrl"><div class="ctrl-title">Trim Section</div>' +
+      sliderHTML('ctA', 'Start', 0, 100, 0.1, 0, '%') +
+      sliderHTML('ctB', 'End', 0, 100, 0.1, 100, '%') +
+      '<div class="info" style="margin-top:6px">The server reads your file\'s real duration and cuts the exact section you choose.</div></div>';
+    controlsEl.innerHTML = html;
+    bindSlider('#ctA', '%'); bindSlider('#ctB', '%');
+  }
+  if (id === 'v2a'){
+    html = '<div class="ctrl"><div class="ctrl-title">How it works</div><div class="info">' +
+      'Your video is uploaded, <b>ffmpeg extracts the audio in seconds</b>, and you get a clean MP3 (192 kbps). ' +
+      'Supports MP4, WebM, MOV, MKV and more. The video is deleted right after processing.</div></div>';
+    controlsEl.innerHTML = html;
+  }
+  if (id === 'voice'){
+    html = '<div class="ctrl"><div class="ctrl-title">Vocal Enhance</div>' +
+      sliderHTML('vsClarity', 'Clarity', 0, 100, 1, 70, '%') +
+      sliderHTML('vsLoud', 'Loudness', 0, 8, 0.5, 4, ' dB') + '</div>';
+    controlsEl.innerHTML = html;
+    bindSlider('#vsClarity', '%'); bindSlider('#vsLoud', ' dB');
+  }
+  if (id === '8d'){
+    html = '<div class="ctrl"><div class="ctrl-title">Rotation</div>' +
+      sliderHTML('dSpeed', 'Spin speed', 2, 20, 1, 8, ' rpm') +
+      sliderHTML('dDepth', 'Width', 0.3, 3, 0.1, 1.5, '') +
+      '<div class="info" style="margin-top:10px">Headphones 🎧 recommended — the audio circles around your head!</div></div>';
+    controlsEl.innerHTML = html;
+    bindSlider('#dSpeed', ' rpm'); bindSlider('#dDepth', '');
+  }
+  if (id === 'all'){
+    html = '<div class="ctrl"><div class="ctrl-title">Song Type</div>' +
+      segHTML('atPreset', ['8D Bass Boosted', '3D Mix', '8D Slow Reverb', 'Ultra Bass 8D'], '8D Bass Boosted') +
+      '<div class="info" style="margin-top:14px">Each preset runs a full effect chain on the server: <b>360° rotation + bass + reverb + slow-down</b>.</div></div>';
+    controlsEl.innerHTML = html;
+    bindSeg('#atPreset');
+  }
+}
+
+/* ---------- collect params ---------- */
+function collect(){
+  const id = cur.id, g = {};
+  if (id === 'bass'){
+    const map = { Power: 6, Deep: 10, Ultra: 14 };
+    const p = $('#bsPreset .on').dataset.v;
+    g.bass = p === 'Custom' ? $('#bsLevel').value : map[p];
+  }
+  if (id === 'eq') g.bands = BANDS.map((_, i) => document.getElementById('eq' + i).value).join(',');
+  if (id === 'reverb'){
+    g.preset = $('#rvPreset .on').dataset.v.toLowerCase();
+    g.wet = $('#rvWet').value;
+    g.slow = $('#rvSlow').checked ? '1' : '0';
+  }
+  if (id === 'cut'){ g.start_pct = $('#ctA').value; g.end_pct = $('#ctB').value; }
+  if (id === 'voice'){ g.clarity = $('#vsClarity').value; g.loud = $('#vsLoud').value; }
+  if (id === '8d'){ g.speed = $('#dSpeed').value; g.depth = $('#dDepth').value; }
+  if (id === 'all'){
+    const map = { '8D Bass Boosted': '8d-bass-boosted', '3D Mix': '3d-mix',
+                  '8D Slow Reverb': '8d-slow-reverb', 'Ultra Bass 8D': 'ultra-bass-8d' };
+    g.song_type = map[$('#atPreset .on').dataset.v];
+  }
+  return g;
+}
+
+/* ---------- process ---------- */
+$('#mProcess').onclick = () => {
+  if (!file) return;
+  if (timer){ clearInterval(timer); }
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('tool', cur.id);
+  const g = collect();
+  Object.keys(g).forEach(k => fd.append(k, g[k]));
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/process');
+  xhr.responseType = 'blob';
+  let t0 = Date.now(), started = false;
+  showProc('Uploading… 0%');
+  xhr.upload.onprogress = e => {
+    if (e.lengthComputable)
+      showProc('Uploading… ' + Math.round(e.loaded / e.total * 100) + '%');
+  };
+  xhr.upload.onload = () => {
+    started = true; t0 = Date.now();
+    showProc('Processing… 0:00 (server me chal raha hai)');
+    timer = setInterval(() => showProc('Processing… ' + fmtT((Date.now() - t0) / 1000)), 1000);
+  };
+  xhr.onload = () => {
+    if (timer){ clearInterval(timer); timer = null; }
+    if (xhr.status === 200){
+      result = xhr.response;
+      const cd = xhr.getResponseHeader('Content-Disposition') || '';
+      const m = cd.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
+      dname = m ? m[1] : 'ZYROX-output.mp3';
+      hideProc();
+      $('#mDownload').disabled = false;
+      toast('✅ ' + cur.name + ' ready! Hit Download.', 'ok');
+      $('#mProcess').disabled = false;
+    } else {
+      hideProc();
+      let msg = 'Server error (HTTP ' + xhr.status + ')';
+      try { msg = JSON.parse(xhr.response).error || msg; } catch (e) {}
+      toast(msg, 'err');
+      $('#mProcess').disabled = false;
+    }
+  };
+  xhr.onerror = () => {
+    if (timer){ clearInterval(timer); timer = null; }
+    hideProc();
+    toast('Could not reach the server — try again.', 'err');
+    $('#mProcess').disabled = false;
+  };
+  $('#mProcess').disabled = true;
+  xhr.send(fd);
+};
+
+/* ---------- download ---------- */
+$('#mDownload').onclick = () => {
+  if (!result) return;
+  const url = URL.createObjectURL(result);
+  const a = document.createElement('a');
+  a.href = url; a.download = dname;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+};
+</script>
+</body>
+</html>

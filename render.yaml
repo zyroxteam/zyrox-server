@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: zyrox-music-enhance
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: "apt-get update -qq && apt-get install -y -qq ffmpeg && pip install -r requirements.txt"
+    startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT --timeout 900 --workers 1 --threads 4"
+    healthCheckPath: /api/health
