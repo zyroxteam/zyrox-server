@@ -7,8 +7,23 @@ import numpy as np
 
 SR = 44100
 MAX_SECONDS = 900          # hard cap: 15 minutes
-FFMPEG = os.environ.get('FFMPEG_PATH', 'ffmpeg')
 NF = 'loudnorm=I=-14:TP=-1:LRA=11,alimiter=limit=0.95'   # normalize + safety limiter
+
+_ffmpeg_cache = [None]
+
+
+def get_ffmpeg():
+    """Resolve the ffmpeg binary: env override → bundled static build → system ffmpeg."""
+    if _ffmpeg_cache[0] is None:
+        cand = os.environ.get('FFMPEG_PATH')
+        if not cand:
+            try:
+                import imageio_ffmpeg
+                cand = imageio_ffmpeg.get_ffmpeg_exe()
+            except Exception:
+                cand = None
+        _ffmpeg_cache[0] = cand or 'ffmpeg'
+    return _ffmpeg_cache[0]
 
 BANDS = [60, 170, 310, 600, 1000, 3000, 6000, 12000]
 
@@ -38,7 +53,7 @@ def clampf(v, lo, hi, default):
 
 def run_ff(cmd, timeout=700):
     try:
-        p = subprocess.run([FFMPEG] + cmd, stdout=subprocess.DEVNULL,
+        p = subprocess.run([get_ffmpeg()] + cmd, stdout=subprocess.DEVNULL,
                            stderr=subprocess.PIPE, timeout=timeout)
     except subprocess.TimeoutExpired:
         raise ProcessError('Processing timed out — try a shorter file.')
