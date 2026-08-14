@@ -12,6 +12,7 @@
   --grad:linear-gradient(100deg,#7c5cff 0%,#00d4ff 55%,#ff3d81 100%);
 }
 *{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
 body{
   font-family:'Segoe UI',system-ui,-apple-system,Roboto,'Helvetica Neue',Arial,sans-serif;
   background:var(--bg); color:var(--txt); min-height:100vh; overflow-x:hidden;
@@ -23,7 +24,7 @@ body{
 .topbar{
   position:sticky; top:0; z-index:50; display:flex; align-items:center; justify-content:space-between;
   padding:14px clamp(16px,4vw,40px); backdrop-filter:blur(14px);
-  background:rgba(6,7,13,.72); border-bottom:1px solid var(--line); flex-wrap:wrap; gap:10px;
+  background:rgba(6,7,13,.72); border-bottom:1px solid var(--line);
 }
 .brand{display:flex; align-items:center; gap:12px; text-decoration:none; color:var(--txt)}
 .logo{
@@ -33,12 +34,6 @@ body{
 }
 .brand-name{font-size:19px; font-weight:800; letter-spacing:.5px}
 .brand-name small{display:block; font-size:10px; letter-spacing:3px; color:var(--mut); font-weight:600}
-#net{
-  font-size:12px; padding:7px 14px; border-radius:999px; font-weight:600; white-space:nowrap;
-  background:rgba(255,255,255,.05); border:1px solid var(--line); color:#b9bfd8;
-}
-#net.online{color:#a9f5dd; background:rgba(34,224,160,.10); border-color:rgba(34,224,160,.28)}
-#net.wake{color:#ffe3a3; background:rgba(255,190,60,.10); border-color:rgba(255,190,60,.3)}
 .hero{text-align:center; padding:clamp(44px,7vw,80px) 20px 26px}
 .hero h1{font-size:clamp(34px,6vw,64px); font-weight:900; letter-spacing:.5px; line-height:1.08; text-transform:uppercase}
 .grad{background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent}
@@ -114,26 +109,22 @@ footer b{color:#cdd3ea}
 .tog .hint{font-size:11.5px; color:var(--mut); margin-top:2px}
 .info{font-size:13px; color:#c9d0e8; background:rgba(0,212,255,.07); border:1px solid rgba(0,212,255,.25); border-radius:12px; padding:13px 15px; line-height:1.55}
 .info b{color:#8ee9ff}
-.proc{
-  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
-  background:rgba(5,6,12,.84); backdrop-filter:blur(5px); border-radius:22px; z-index:20;
-}
-.spin{width:44px; height:44px; border-radius:50%; border:4px solid rgba(255,255,255,.14); border-top-color:var(--p2); animation:rot .8s linear infinite}
-@keyframes rot{to{transform:rotate(360deg)}}
-.proc span{font-size:14px; font-weight:700; letter-spacing:.4px}
-.pbar{width:78%; max-width:340px; height:8px; border-radius:99px; background:rgba(255,255,255,.12); overflow:hidden; display:none}
-.pfill{height:100%; width:0%; border-radius:99px; background:var(--grad); transition:width .4s ease}
-.proc .cancel{
-  margin-top:6px; padding:10px 22px; border-radius:12px; cursor:pointer; font:inherit;
-  font-size:13px; font-weight:700; color:#ffc2d6; background:rgba(255,61,129,.15);
-  border:1px solid rgba(255,61,129,.45); transition:.2s;
-}
-.proc .cancel:hover{background:rgba(255,61,129,.3)}
 .pfoot{display:flex; gap:10px; padding:4px 24px 22px; justify-content:flex-end; flex-wrap:wrap}
 .btn{font:inherit; font-size:14px; font-weight:800; padding:12px 22px; border-radius:13px; cursor:pointer; border:1px solid var(--line); background:rgba(255,255,255,.05); color:var(--txt); transition:.2s; letter-spacing:.3px}
 .btn:hover{transform:translateY(-2px)}
 .btn:disabled{opacity:.4; cursor:not-allowed; transform:none}
 .btn.primary{background:var(--grad); border:none; color:#fff; box-shadow:0 8px 26px -8px rgba(124,92,255,.8)}
+/* --- compact inline progress (NO full-screen splash) --- */
+.pg{
+  flex-basis:100%; display:none; padding:12px 14px; border-radius:12px; margin-bottom:6px;
+  background:rgba(0,212,255,.06); border:1px solid rgba(0,212,255,.22);
+}
+.pg .pg-row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px}
+.pg-text{font-size:13px; font-weight:700; color:#8ee9ff}
+.pg-cancel{font-size:12px; font-weight:700; padding:6px 12px; border-radius:9px; border:1px solid rgba(255,61,129,.4); background:rgba(255,61,129,.12); color:#ffc2d6; cursor:pointer; transition:.2s}
+.pg-cancel:hover{background:rgba(255,61,129,.28)}
+.pbar{height:8px; border-radius:99px; background:rgba(255,255,255,.1); overflow:hidden}
+.pfill{height:100%; width:2%; border-radius:99px; background:var(--grad); transition:width .35s ease}
 .toasts{position:fixed; bottom:22px; left:50%; transform:translateX(-50%); z-index:200; display:flex; flex-direction:column; gap:9px; align-items:center; pointer-events:none}
 .toast{padding:12px 20px; border-radius:13px; font-size:13.5px; font-weight:700; max-width:92vw; background:#131728; border:1px solid var(--line); box-shadow:0 14px 40px -10px rgba(0,0,0,.7); animation:tIn .3s cubic-bezier(.2,.9,.3,1.2)}
 .toast.ok{border-color:rgba(34,224,160,.5); color:#b6f7e2}
@@ -149,12 +140,11 @@ footer b{color:#cdd3ea}
     <div class="logo">Z</div>
     <div class="brand-name">ZYROX <small>MUSIC ENHANCE</small></div>
   </a>
-  <span id="net">⏳ Connecting to server…</span>
 </header>
 
 <section class="hero">
   <h1>ZYROX <span class="grad">MUSIC<br>ENHANCE</span></h1>
-  <p>Full audio studio powered by a <b style="color:#c9d0e8">Python server</b> — bass boost, 8-band EQ, slow reverb, cut &amp; convert. Your file is processed and <b style="color:#c9d0e8">deleted instantly</b> after download.</p>
+  <p>Full audio studio — bass boost, 8-band EQ, slow reverb, cut &amp; convert. Pick a tool, drop your file, done. 🎧</p>
   <div class="chips">
     <span class="chip">🎧 <b>8D</b> &amp; <b>3D</b> Mixes</span>
     <span class="chip">🔥 <b>Bass Boosted</b> Songs</span>
@@ -173,7 +163,7 @@ footer b{color:#cdd3ea}
   Server engine: Flask + ffmpeg + numpy · Files are auto-deleted right after processing 🔒
 </footer>
 
-<!-- ============ MODAL ============ -->
+<!-- ============ TOOL MODAL ============ -->
 <div class="modal" id="modal" hidden>
   <div class="backdrop" id="backdrop"></div>
   <div class="panel" id="panel">
@@ -200,15 +190,16 @@ footer b{color:#cdd3ea}
       <div id="controls"></div>
     </div>
     <div class="pfoot">
+      <div class="pg" id="pgWrap">
+        <div class="pg-row">
+          <span class="pg-text" id="pgText">Uploading… 0%</span>
+          <button class="pg-cancel" id="pgCancel" type="button">✕ Cancel</button>
+        </div>
+        <div class="pbar"><div class="pfill" id="pfill"></div></div>
+      </div>
       <button class="btn ghost" id="mReset">Reset</button>
       <button class="btn primary" id="mProcess" disabled>▶ Process</button>
       <button class="btn primary" id="mDownload" disabled>⬇ Download</button>
-    </div>
-    <div class="proc" id="proc" hidden>
-      <div class="spin"></div>
-      <span id="procText">Processing…</span>
-      <div class="pbar" id="pbar"><div class="pfill" id="pfill"></div></div>
-      <button class="cancel" id="procCancel" type="button">✕ Cancel</button>
     </div>
   </div>
 </div>
@@ -234,25 +225,8 @@ const TOOLS = [
   { id:'all',     name:'Make All Types',ic:'✨', desc:'8D Bass Boosted · 3D Mix · Slow Reverb 8D · Ultra Bass 8D', hint:'MP3, WAV, OGG, M4A, FLAC…' }
 ];
 
-let cur = null, file = null, result = null, dname = 'ZYROX-output.mp3', timer = null, curXhr = null;
+let cur = null, file = null, result = null, dname = 'ZYROX-output.mp3', curXhr = null;
 let jobId = null, pollTimer = null;
-
-/* ---------- server health ---------- */
-let wasOnline = false;
-async function checkHealth(){
-  try {
-    const r = await fetch('/api/health');
-    if (r.ok){
-      setNet('online', '🟢 Server online');
-      wasOnline = true;
-      return;
-    }
-  } catch (e) {}
-  setNet('wake', wasOnline ? '⏳ Server waking up… (~30s)' : '⏳ Starting server… (free tier, ~30s)');
-  setTimeout(checkHealth, 5000);
-}
-function setNet(cls, txt){ const n = $('#net'); n.className = cls; n.textContent = txt; }
-checkHealth();
 
 /* ---------- helpers ---------- */
 function toast(msg, type){
@@ -263,18 +237,16 @@ function toast(msg, type){
   setTimeout(() => { t.style.opacity = '0'; t.style.transition = '.4s'; }, 3200);
   setTimeout(() => t.remove(), 3700);
 }
+/* compact inline progress — features hamesha visible rehte hain */
 function showProc(text, pct){
-  $('#procText').textContent = text;
-  const bar = $('#pbar');
-  if (typeof pct === 'number'){
-    bar.style.display = 'block';
-    $('#pfill').style.width = Math.max(2, Math.min(100, pct)) + '%';
-  } else {
-    bar.style.display = 'none';
-  }
-  $('#proc').hidden = false;
+  const w = $('#pgWrap');
+  w.style.display = 'block';
+  $('#pgText').textContent = text;
+  const fill = $('#pfill');
+  if (typeof pct === 'number') fill.style.width = Math.max(2, Math.min(100, pct)) + '%';
+  else fill.style.width = '2%';
 }
-function hideProc(){ $('#proc').hidden = true; }
+function hideProc(){ $('#pgWrap').style.display = 'none'; }
 function segHTML(id, options, active){
   return '<div class="seg" id="' + id + '">' + options.map(o =>
     '<button type="button" data-v="' + o + '" class="' + (o === active ? 'on' : '') + '">' + o + '</button>').join('') + '</div>';
@@ -339,13 +311,17 @@ function openTool(id){
   document.body.style.overflow = 'hidden';
 }
 function closeModal(){
+  if (pollTimer){ clearTimeout(pollTimer); pollTimer = null; }
+  if (jobId){
+    fetch('/api/cancel/' + jobId, { method: 'POST' }).catch(() => {});
+    jobId = null;
+  }
   if (curXhr){ try { curXhr.abort(); } catch(e){} curXhr = null; }
   modal.hidden = true;
   document.body.style.overflow = '';
   resetToolState();
 }
 function resetToolState(){
-  if (timer){ clearInterval(timer); timer = null; }
   if (pollTimer){ clearTimeout(pollTimer); pollTimer = null; }
   jobId = null;
   hideProc();
@@ -487,20 +463,7 @@ function collect(){
   return g;
 }
 
-/* ---------- process (upload → job → live progress → download) ---------- */
-$('#procCancel').onclick = () => {
-  if (pollTimer){ clearTimeout(pollTimer); pollTimer = null; }
-  if (jobId){
-    fetch('/api/cancel/' + jobId, { method: 'POST' }).catch(() => {});
-    jobId = null;
-  }
-  if (curXhr){ try { curXhr.abort(); } catch(e){} curXhr = null; }
-  hideProc();
-  $('#mProcess').disabled = false;
-  $('#mDownload').disabled = (result === null);
-  toast('Processing cancelled.', 'ok');
-};
-
+/* ---------- process: upload → job → live % → auto-download ---------- */
 function finishFail(msg){
   if (pollTimer){ clearTimeout(pollTimer); pollTimer = null; }
   jobId = null;
@@ -569,9 +532,21 @@ function pollStatus(){
     });
 }
 
+$('#pgCancel').onclick = () => {
+  if (pollTimer){ clearTimeout(pollTimer); pollTimer = null; }
+  if (jobId){
+    fetch('/api/cancel/' + jobId, { method: 'POST' }).catch(() => {});
+    jobId = null;
+  }
+  if (curXhr){ try { curXhr.abort(); } catch(e){} curXhr = null; }
+  hideProc();
+  $('#mProcess').disabled = false;
+  $('#mDownload').disabled = (result === null);
+  toast('Processing cancelled.', 'ok');
+};
+
 $('#mProcess').onclick = () => {
   if (!file) return;
-  if (timer){ clearInterval(timer); }
   if (pollTimer){ clearTimeout(pollTimer); pollTimer = null; }
   const fd = new FormData();
   fd.append('file', file);
@@ -583,12 +558,13 @@ $('#mProcess').onclick = () => {
   curXhr = xhr;
   xhr.open('POST', '/api/process');
   xhr.timeout = 20 * 60 * 1000;
-  showProc('Uploading… 0%');
+  showProc('Uploading… 0%', 0);
   xhr.upload.onprogress = e => {
     if (e.lengthComputable)
-      showProc('Uploading… ' + Math.round(e.loaded / e.total * 100) + '%');
+      showProc('Uploading… ' + Math.round(e.loaded / e.total * 100) + '%',
+               Math.round(e.loaded / e.total * 100));
   };
-  xhr.upload.onload = () => { showProc('Upload complete — starting…'); };
+  xhr.upload.onload = () => { showProc('Upload complete — starting…', 1); };
   xhr.onload = () => {
     if (curXhr === xhr) curXhr = null;
     if (xhr.status === 200){

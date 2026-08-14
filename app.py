@@ -75,7 +75,9 @@ def _run_job(job_id):
 
 @app.get('/')
 def index():
-    return app.send_static_file('index.html')
+    resp = app.send_static_file('index.html')
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    return resp
 
 
 @app.get('/api/health')
