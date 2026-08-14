@@ -6,6 +6,7 @@ import threading
 import time
 import traceback
 import urllib.request
+import uuid
 
 from flask import Flask, jsonify, request, send_file
 
@@ -34,15 +35,42 @@ def _start_keepalive():
 if os.environ.get('DISABLE_KEEPALIVE') != '1':
     _start_keepalive()
 
+# ---- job manager (upload → background processing → poll → download) ----
+JOBS = {}
+JOBS_LOCK = threading.Lock()
+JOB_TTL = 30 * 60   # wipe finished jobs (and their files) after 30 min
 
-def _schedule_cleanup(tmpdir, delay=60):
-    """Guaranteed wipe: force-delete the temp folder shortly after the response
-    is sent (works even where WSGI close-callbacks are never invoked)."""
-    def wipe():
-        shutil.rmtree(tmpdir, ignore_errors=True)
-    t = threading.Timer(delay, wipe)
-    t.daemon = True
-    t.start()
+
+def _expire_job(job_id):
+    with JOBS_LOCK:
+        job = JOBS.pop(job_id, None)
+    if job:
+        shutil.rmtree(job['tmpdir'], ignore_errors=True)
+
+
+def _run_job(job_id):
+    job = JOBS.get(job_id)
+    if not job:
+        return
+    job.update(status='processing')
+    try:
+        out_path, dname, mime = processor.process(
+            job['tmpdir'], job['inp'], job['tool'], job['params'],
+            prog=lambda pct: job.update(progress=round(pct * 100, 1)),
+            cancel=lambda: job.get('cancelled', False))
+        job.update(status='done', progress=100, out_path=out_path,
+                   dname=dname, mime=mime)
+    except processor.Cancelled:
+        job.update(status='cancelled', progress=job.get('progress', 0))
+        shutil.rmtree(job['tmpdir'], ignore_errors=True)
+    except processor.ProcessError as e:
+        job.update(status='error', error=str(e))
+        shutil.rmtree(job['tmpdir'], ignore_errors=True)
+    except Exception as e:  # noqa: BLE001
+        traceback.print_exc()
+        job.update(status='error', error='Processing failed: ' + str(e))
+        shutil.rmtree(job['tmpdir'], ignore_errors=True)
+    threading.Timer(JOB_TTL, lambda: _expire_job(job_id)).start()
 
 
 @app.get('/')
@@ -72,25 +100,60 @@ def process():
             params[k] = v
 
     tmpdir = tempfile.mkdtemp(prefix='zyrox_')
-    try:
-        ext = os.path.splitext(f.filename)[1].lower() or '.bin'
-        inp = os.path.join(tmpdir, 'input' + ext)
-        f.save(inp)
+    ext = os.path.splitext(f.filename)[1].lower() or '.bin'
+    inp = os.path.join(tmpdir, 'input' + ext)
+    f.save(inp)
 
-        out_path, dname, mime = processor.process(tmpdir, inp, tool, params)
+    job_id = uuid.uuid4().hex[:16]
+    with JOBS_LOCK:
+        JOBS[job_id] = {
+            'id': job_id, 'status': 'queued', 'progress': 0,
+            'tool': tool, 'params': params, 'tmpdir': tmpdir, 'inp': inp,
+            'out_path': None, 'dname': None, 'mime': None,
+            'error': None, 'cancelled': False,
+        }
+    threading.Thread(target=_run_job, args=(job_id,), daemon=True).start()
+    return jsonify(job_id=job_id)
 
-        resp = send_file(out_path, as_attachment=True,
-                         download_name=dname, mimetype=mime)
-        resp.call_on_close(lambda: shutil.rmtree(tmpdir, ignore_errors=True))
-        _schedule_cleanup(tmpdir)
-        return resp
-    except processor.ProcessError as e:
-        shutil.rmtree(tmpdir, ignore_errors=True)
-        return jsonify(error=str(e)), 422
-    except Exception as e:  # noqa: BLE001
-        traceback.print_exc()
-        shutil.rmtree(tmpdir, ignore_errors=True)
-        return jsonify(error='Processing failed: ' + str(e)), 500
+
+@app.get('/api/status/<job_id>')
+def status(job_id):
+    job = JOBS.get(job_id)
+    if not job:
+        return jsonify(status='missing'), 404
+    return jsonify(status=job['status'], progress=job['progress'],
+                   error=job.get('error'))
+
+
+@app.post('/api/cancel/<job_id>')
+def cancel(job_id):
+    job = JOBS.get(job_id)
+    if not job:
+        return jsonify(error='Job not found.'), 404
+    job['cancelled'] = True
+    return jsonify(status='cancelling')
+
+
+@app.get('/api/result/<job_id>')
+def result(job_id):
+    job = JOBS.get(job_id)
+    if not job:
+        return jsonify(error='Job expired — please process again.'), 404
+    if job['status'] == 'error':
+        return jsonify(error=job.get('error') or 'Processing failed.'), 422
+    if job['status'] == 'cancelled':
+        return jsonify(error='Processing was cancelled.'), 409
+    if job['status'] != 'done':
+        return jsonify(error='Still processing…'), 409
+
+    resp = send_file(job['out_path'], as_attachment=True,
+                     download_name=job['dname'], mimetype=job['mime'])
+    tmpdir = job['tmpdir']
+    resp.call_on_close(lambda: shutil.rmtree(tmpdir, ignore_errors=True))
+    threading.Timer(120, lambda: shutil.rmtree(tmpdir, ignore_errors=True)).start()
+    with JOBS_LOCK:
+        JOBS.pop(job_id, None)
+    return resp
 
 
 @app.errorhandler(413)

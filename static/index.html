@@ -121,6 +121,8 @@ footer b{color:#cdd3ea}
 .spin{width:44px; height:44px; border-radius:50%; border:4px solid rgba(255,255,255,.14); border-top-color:var(--p2); animation:rot .8s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
 .proc span{font-size:14px; font-weight:700; letter-spacing:.4px}
+.pbar{width:78%; max-width:340px; height:8px; border-radius:99px; background:rgba(255,255,255,.12); overflow:hidden; display:none}
+.pfill{height:100%; width:0%; border-radius:99px; background:var(--grad); transition:width .4s ease}
 .proc .cancel{
   margin-top:6px; padding:10px 22px; border-radius:12px; cursor:pointer; font:inherit;
   font-size:13px; font-weight:700; color:#ffc2d6; background:rgba(255,61,129,.15);
@@ -205,6 +207,7 @@ footer b{color:#cdd3ea}
     <div class="proc" id="proc" hidden>
       <div class="spin"></div>
       <span id="procText">Processing…</span>
+      <div class="pbar" id="pbar"><div class="pfill" id="pfill"></div></div>
       <button class="cancel" id="procCancel" type="button">✕ Cancel</button>
     </div>
   </div>
@@ -232,6 +235,7 @@ const TOOLS = [
 ];
 
 let cur = null, file = null, result = null, dname = 'ZYROX-output.mp3', timer = null, curXhr = null;
+let jobId = null, pollTimer = null;
 
 /* ---------- server health ---------- */
 let wasOnline = false;
@@ -259,7 +263,17 @@ function toast(msg, type){
   setTimeout(() => { t.style.opacity = '0'; t.style.transition = '.4s'; }, 3200);
   setTimeout(() => t.remove(), 3700);
 }
-function showProc(text){ $('#procText').textContent = text; $('#proc').hidden = false; }
+function showProc(text, pct){
+  $('#procText').textContent = text;
+  const bar = $('#pbar');
+  if (typeof pct === 'number'){
+    bar.style.display = 'block';
+    $('#pfill').style.width = Math.max(2, Math.min(100, pct)) + '%';
+  } else {
+    bar.style.display = 'none';
+  }
+  $('#proc').hidden = false;
+}
 function hideProc(){ $('#proc').hidden = true; }
 function segHTML(id, options, active){
   return '<div class="seg" id="' + id + '">' + options.map(o =>
@@ -332,6 +346,8 @@ function closeModal(){
 }
 function resetToolState(){
   if (timer){ clearInterval(timer); timer = null; }
+  if (pollTimer){ clearTimeout(pollTimer); pollTimer = null; }
+  jobId = null;
   hideProc();
   file = null; result = null; dname = 'ZYROX-output.mp3';
   drop.hidden = false; filerow.hidden = true;
@@ -471,15 +487,92 @@ function collect(){
   return g;
 }
 
-/* ---------- process ---------- */
+/* ---------- process (upload → job → live progress → download) ---------- */
 $('#procCancel').onclick = () => {
-  if (curXhr){ curXhr.abort(); curXhr = null; }
+  if (pollTimer){ clearTimeout(pollTimer); pollTimer = null; }
+  if (jobId){
+    fetch('/api/cancel/' + jobId, { method: 'POST' }).catch(() => {});
+    jobId = null;
+  }
+  if (curXhr){ try { curXhr.abort(); } catch(e){} curXhr = null; }
+  hideProc();
+  $('#mProcess').disabled = false;
+  $('#mDownload').disabled = (result === null);
   toast('Processing cancelled.', 'ok');
 };
+
+function finishFail(msg){
+  if (pollTimer){ clearTimeout(pollTimer); pollTimer = null; }
+  jobId = null;
+  hideProc();
+  $('#mProcess').disabled = false;
+  $('#mDownload').disabled = (result === null);
+  toast(msg, 'err');
+}
+
+function doDownload(){
+  if (!result) return;
+  const url = URL.createObjectURL(result);
+  const a = document.createElement('a');
+  a.href = url; a.download = dname;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 8000);
+}
+
+function fetchResult(){
+  showProc('Finishing…', 100);
+  const xhr = new XMLHttpRequest();
+  curXhr = xhr;
+  xhr.open('GET', '/api/result/' + jobId);
+  xhr.responseType = 'blob';
+  xhr.timeout = 10 * 60 * 1000;
+  xhr.onload = () => {
+    if (curXhr === xhr) curXhr = null;
+    jobId = null;
+    if (xhr.status === 200){
+      result = xhr.response;
+      const cd = xhr.getResponseHeader('Content-Disposition') || '';
+      const m = cd.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
+      dname = m ? m[1] : 'ZYROX-output.mp3';
+      hideProc();
+      $('#mDownload').disabled = false;
+      $('#mProcess').disabled = false;
+      toast('✅ ' + cur.name + ' ready! Downloading…', 'ok');
+      doDownload();
+    } else {
+      let msg = 'Download failed (HTTP ' + xhr.status + ')';
+      try { msg = JSON.parse(xhr.response).error || msg; } catch (e) {}
+      finishFail(msg);
+    }
+  };
+  xhr.ontimeout = () => finishFail('Download timed out — try again.');
+  xhr.onerror = () => finishFail('Download failed — try again.');
+  xhr.onabort = () => { hideProc(); };
+  xhr.send();
+}
+
+function pollStatus(){
+  fetch('/api/status/' + jobId)
+    .then(r => r.json())
+    .then(j => {
+      if (j.status === 'done'){ fetchResult(); return; }
+      if (j.status === 'error'){ finishFail(j.error || 'Processing failed.'); return; }
+      if (j.status === 'cancelled'){ finishFail('Processing was cancelled.'); return; }
+      if (j.status === 'missing'){ finishFail('Job expired — please try again.'); return; }
+      const pct = Math.round(j.progress || 0);
+      showProc('Processing… ' + pct + '%', pct);
+      pollTimer = setTimeout(pollStatus, 1500);
+    })
+    .catch(() => {
+      showProc('Waiting for server…');
+      pollTimer = setTimeout(pollStatus, 2500);
+    });
+}
 
 $('#mProcess').onclick = () => {
   if (!file) return;
   if (timer){ clearInterval(timer); }
+  if (pollTimer){ clearTimeout(pollTimer); pollTimer = null; }
   const fd = new FormData();
   fd.append('file', file);
   fd.append('tool', cur.id);
@@ -489,67 +582,37 @@ $('#mProcess').onclick = () => {
   const xhr = new XMLHttpRequest();
   curXhr = xhr;
   xhr.open('POST', '/api/process');
-  xhr.responseType = 'blob';
-  xhr.timeout = 13 * 60 * 1000;   // free-tier cap ke andar safe timeout
-  let t0 = Date.now(), started = false;
+  xhr.timeout = 20 * 60 * 1000;
   showProc('Uploading… 0%');
   xhr.upload.onprogress = e => {
     if (e.lengthComputable)
       showProc('Uploading… ' + Math.round(e.loaded / e.total * 100) + '%');
   };
-  xhr.upload.onload = () => {
-    started = true; t0 = Date.now();
-    showProc('Processing… 0:00 (server me chal raha hai)');
-    timer = setInterval(() => showProc('Processing… ' + fmtT((Date.now() - t0) / 1000)), 1000);
-  };
-  const finish = ok => {
-    if (timer){ clearInterval(timer); timer = null; }
-    if (curXhr === xhr) curXhr = null;
-    hideProc();
-    if (!ok){
-      $('#mProcess').disabled = false;
-      $('#mDownload').disabled = (result === null);
-    }
-  };
+  xhr.upload.onload = () => { showProc('Upload complete — starting…'); };
   xhr.onload = () => {
+    if (curXhr === xhr) curXhr = null;
     if (xhr.status === 200){
-      result = xhr.response;
-      const cd = xhr.getResponseHeader('Content-Disposition') || '';
-      const m = cd.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i);
-      dname = m ? m[1] : 'ZYROX-output.mp3';
-      finish(true);
-      $('#mDownload').disabled = false;
-      $('#mProcess').disabled = false;
-      toast('✅ ' + cur.name + ' ready! Hit Download.', 'ok');
+      try {
+        const j = JSON.parse(xhr.responseText);
+        jobId = j.job_id;
+        showProc('Processing… 0%', 0);
+        pollStatus();
+      } catch (e) { finishFail('Bad server response — try again.'); }
     } else {
       let msg = 'Server error (HTTP ' + xhr.status + ')';
-      try { msg = JSON.parse(xhr.response).error || msg; } catch (e) {}
-      finish(false);
-      toast(msg, 'err');
+      try { msg = JSON.parse(xhr.responseText).error || msg; } catch (e) {}
+      finishFail(msg);
     }
   };
-  xhr.ontimeout = () => {
-    finish(false);
-    toast('Server ne jawaab nahi diya (free-tier limit). Dobara try karo.', 'err');
-  };
-  xhr.onerror = () => {
-    finish(false);
-    toast('Could not reach the server — try again.', 'err');
-  };
-  xhr.onabort = () => { finish(false); };
+  xhr.ontimeout = () => finishFail('Upload timed out — connection slow? Try again.');
+  xhr.onerror = () => finishFail('Could not reach the server — try again.');
+  xhr.onabort = () => { hideProc(); };
   $('#mProcess').disabled = true;
   xhr.send(fd);
 };
 
 /* ---------- download ---------- */
-$('#mDownload').onclick = () => {
-  if (!result) return;
-  const url = URL.createObjectURL(result);
-  const a = document.createElement('a');
-  a.href = url; a.download = dname;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-};
+$('#mDownload').onclick = doDownload;
 </script>
 </body>
 </html>
